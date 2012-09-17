@@ -1,4 +1,8 @@
 RoseCore::Application.routes.draw do
+  
+  post '/documents/load'
+  get '/documents/get'
+  get 'documents/search_by_content'
   # The priority is based upon order of creation:
   # first created -> highest priority.
 

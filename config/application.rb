@@ -1,6 +1,7 @@
 require File.expand_path('../boot', __FILE__)
 
 require 'rails/all'
+#require 'rake'
 
 if defined?(Bundler)
   # If you precompile assets before deploying to production, use this line
@@ -57,3 +58,24 @@ module RoseCore
     config.assets.version = '1.0'
   end
 end
+
+Encoding.default_internal = Encoding.default_external = 'utf-8'
+
+MAX_DOCUMENTS = 100000
+
+CORE_DIR_ROOT           = '/' + Rails.root.to_s.split('/')[1..-2].join('/') + '/'
+CORE_DIR_DOCUMENTS      = CORE_DIR_ROOT + 'core_documents/'
+CORE_DIR_FOR_CONVERSION = CORE_DIR_DOCUMENTS + 'for_conversion/'
+CORE_DIR_CONVERTED      = CORE_DIR_DOCUMENTS + 'converted/'
+CORE_TMP_DIR            = CORE_DIR_DOCUMENTS + 'tmp/'
+CORE_SPHINX_DIR         = CORE_DIR_DOCUMENTS + 'sphinx/'
+CORE_XML_PATH           = CORE_DIR_DOCUMENTS + 'content.xml'
+
+MINUTE    = 1 #60
+
+#class Status
+#  WAITING_TO_CONVERSION = 2
+#  CONVERTED             = 11
+#  CANNOT_CONVERT        = 12
+#  INDEXED               = 20
+#end

@@ -1,0 +1,2 @@
+#sudo mkdir /var/log/sphinxsearch/
+#remove it to log/sphinxsearch 
