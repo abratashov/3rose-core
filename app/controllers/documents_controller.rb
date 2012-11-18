@@ -88,9 +88,12 @@ class DocumentsController < ApplicationController
 #    render :json => result
   end
   
-  def search_by_content
+  def search
+    p params[:search]
+    p params[:categories]
      result = []
      search_string = params[:search]
+     categories = params[:categories] ? params[:categories] : []
      if search_string
        docs_pages = {}
        sphinx = Riddle::Client.new
@@ -102,8 +105,13 @@ class DocumentsController < ApplicationController
        sphinx.sort_by    = "category_id DESC"
        sphinx.match_mode = :extended
 
-       sphinx.limit = params[:limit] ? params[:limit] : 50
-       sphinx.filters << Riddle::Client::Filter.new("category_id", [24, 23], false)
+       #sphinx.limit = params[:limit] ? params[:limit] : 50
+       sphinx.limit = 50
+       unless categories.empty?
+         p 'here----------------------------'
+         p categories
+         sphinx.filters << Riddle::Client::Filter.new("category_id", categories, false)
+       end
        sphinx_results = sphinx.query(search_string)
 
        sphinx_results[:matches].each do |match|
@@ -114,7 +122,7 @@ class DocumentsController < ApplicationController
          docs_pages[id] << (match[:doc] - ((match[:doc]/10000).to_i)*10000)
        end
        docs_pages.each do |key, value|
-         result << {:obj => Document.find(key), :pages => value}
+         result << {:document => key, :pages => value}
        end
      end
      render :json => result.to_json

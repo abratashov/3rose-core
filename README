@@ -1,2 +1,52 @@
 #sudo mkdir /var/log/sphinxsearch/
 #remove it to log/sphinxsearch 
+
+3rose - Free Rails Open Search Engine
+
+== Installation ==
+#1
+install all need linux packages:
+-RVM (http://beginrescueend.com/)
+-Ruby 1.9.3
+-Rails 3
+-Tomcat 6 (Synaptic Package Manager)
+-JODConverter (Synaptic Package Manager)
+-Sphinx 0.9.9 (http://sphinxsearch.com/downloads/archive/)
+  "sudo gedit /usr/local/etc/sphinx.conf"
+  copy there content of the "../3rose/config/sphinx/sphinx.conf"
+  set right full path for example: 
+  "xmlpipe_command = cat /home/alex/git/3rose/zuploads/content.xml"
+  "path = /home/alex/git/3rose/sphinx/sphinx"
+
+#2 download project
+mkdir 3rose
+cd 3rose
+git clone git@github.com:abratashov/3rose.git
+cd 3rose
+rake gen_directories
+--3rose
+----3rose
+----sphinx
+----uploads
+------origin_books
+------pdf
+------txt_pages
+
+#3 start tomcat:
+sudo /etc/init.d/tomcat6 start
+
+#4 start sphinx:
+sudo /usr/local/bin/searchd
+
+#5 rails s
+
+#6 indexed all added books
+rake gen_sphinx_xml          #generate content xml
+sudo kill -9 'pgrep searchd' #stop searchd service
+sudo indexer --all           #make indexation
+
+Sphinx Server (HTTPS-API)
+конвертация поступивших документов (pdf, doc, ...) в текст (постраничный)
+индексация текстовых файлов (cron)
+сервис полнотекстового поиска (“слово” -> [id_doc1, ...]; id_doc1 = 4500001, где 45 - документ, 1 - страница)
+
