@@ -122,7 +122,7 @@ class DocumentsController < ApplicationController
          docs_pages[id] << (match[:doc] - ((match[:doc]/10000).to_i)*10000)
        end
        docs_pages.each do |key, value|
-         result << {:document => key, :pages => value}
+         result << { :document_id => key, :pages=> value}
        end
      end
      render :json => result.to_json
