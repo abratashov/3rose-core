@@ -97,23 +97,23 @@ class DocumentsController < ApplicationController
      if search_string
        docs_pages = {}
        sphinx = Riddle::Client.new
-       #client.sort_mode  = :extended
-       #client.sort_by    = "birthday DESC"
-       #sphinx.match_mode = :all
 
        sphinx.sort_mode  = :extended
        sphinx.sort_by    = "category_id DESC"
        sphinx.match_mode = :extended
+       #sphinx.match_mode = :all
 
-       #sphinx.limit = params[:limit] ? params[:limit] : 50
-       sphinx.limit = 50
+       sphinx.limit = params[:limit] ? params[:limit] : 50
+       sphinx.offset = params[:offset] ? params[:offset] : 0
+
        unless categories.empty?
          p 'here----------------------------'
          p categories
          sphinx.filters << Riddle::Client::Filter.new("category_id", categories, false)
        end
        sphinx_results = sphinx.query(search_string)
-
+       p 'ppppppppppppppppppppppp'
+       p sphinx_results
        sphinx_results[:matches].each do |match|
          id = (match[:doc]/MAX_DOCUMENTS).to_i
          if !(docs_pages[id])
