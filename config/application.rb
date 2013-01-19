@@ -61,7 +61,14 @@ end
 
 Encoding.default_internal = Encoding.default_external = 'utf-8'
 
+APP_CORE_PASSWORD = 'secret password'
+APP_CORE_TOKEN    = Digest::MD5.hexdigest(APP_CORE_PASSWORD)
+
+#need take away to DB
+DOC_TYPES = ['txt', 'pdf', 'doc', 'docx']
+
 MAX_DOCUMENTS = 100000
+MINUTE = 1 #60
 
 CORE_DIR_ROOT           = '/' + Rails.root.to_s.split('/')[1..-2].join('/') + '/'
 CORE_DIR_DOCUMENTS      = CORE_DIR_ROOT + 'core_documents/'
@@ -70,12 +77,3 @@ CORE_DIR_CONVERTED      = CORE_DIR_DOCUMENTS + 'converted/'
 CORE_TMP_DIR            = CORE_DIR_DOCUMENTS + 'tmp/'
 CORE_SPHINX_DIR         = CORE_DIR_DOCUMENTS + 'sphinx/'
 CORE_XML_PATH           = CORE_DIR_DOCUMENTS + 'content.xml'
-
-MINUTE    = 1 #60
-
-#class Status
-#  WAITING_TO_CONVERSION = 2
-#  CONVERTED             = 11
-#  CANNOT_CONVERT        = 12
-#  INDEXED               = 20
-#end
