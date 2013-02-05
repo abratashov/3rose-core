@@ -29,7 +29,7 @@ def delete_last_byte_at_document(filename, num_pages)
     filename_page = filename + '_' + (page + 1).to_s + '.txt'
     #dirname = make_need_filename_extension(filename, '')
     dirname = filename
-    file = File.new(CORE_DIR_CONVERTED + dirname + '/' + filename_page, 'a+')
+    file = File.new(CORE_DIR_TEXTS + dirname + '/' + filename_page, 'a+')
     if (file.size > 0)
       file.seek(file.size - 1)
       last_byte = file.getc

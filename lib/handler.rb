@@ -11,41 +11,61 @@ class Handler
       docs.each do |doc|
         if doc.filetype == 'zip'
           document_name = uncompress_document(doc)
+          document_path = CORE_TMP_DIR + document_name
         elsif DOC_TYPES.include?(doc.filetype)
-          document_name = doc.path
+          document_name = doc.fullname
+          document_path = doc.path
         else
           doc.update_attributes({:state => State.find_by_name('ERR_UNKNOWN_DOCUMENT_TYPE').code})
-          document_name = ''
+          document_path = ''
         end
-        unless document_name.empty?
-          p '====================================================='
-          p document_name
-          begin
-            Docsplit.extract_pdf(CORE_TMP_DIR + document_name, :output => CORE_TMP_DIR)
-            pdf_name = make_need_filename_extension(document_name, 'pdf')
-            #pdf_name = doc.filename + '.pdf'
+
+        unless document_path.empty?
+          p document_path
+          doctype = document_path.sub(/^.*\./,'')
+          doc.update_attributes({:doctype => doctype}) if doctype
+          #begin
+            if doc.filetype != 'pdf'
+              Docsplit.extract_pdf(document_path, :output => CORE_TMP_DIR)
+              pdf_path = CORE_TMP_DIR + make_need_filename_extension(document_name, 'pdf')
+            else
+              pdf_path = doc.path
+            end
             num_pages = 0
-            num_pages = PdfUtils.info(CORE_TMP_DIR + pdf_name).pages
+            num_pages = PdfUtils.info(pdf_path).pages
             if num_pages
               #dirname = make_need_filename_extension(doc.filename, '')
               dirname = doc.filename
-              FileUtils.rm_rf(CORE_DIR_CONVERTED + dirname)
-              Dir.mkdir(CORE_DIR_CONVERTED + dirname) if !(Dir.exist?(CORE_DIR_CONVERTED + dirname))
-              Docsplit::extract_text(CORE_TMP_DIR + pdf_name, :ocr => false, :pages => 'all', :output => CORE_DIR_CONVERTED + dirname)
+              FileUtils.rm_rf(CORE_DIR_TEXTS + dirname)
+              Dir.mkdir(CORE_DIR_TEXTS + dirname) if !(Dir.exist?(CORE_DIR_TEXTS + dirname))
+              Docsplit::extract_text(pdf_path, :ocr => false, :pages => 'all', :output => CORE_DIR_TEXTS + dirname)
               delete_last_byte_at_document(doc.filename, num_pages)
               doc.update_attributes({:pages => num_pages})
               doc.update_attributes({:state => State.find_by_name('CONVERTED_ON_CORE').code})
             else
               doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
             end
-            FileUtils.rm(CORE_TMP_DIR + pdf_name, :force => true) if num_pages
-          rescue
-           p "CONVERTING ERROR"
-           doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
-          end
+            FileUtils.rm(pdf_path, :force => true) if num_pages && doc.filetype != 'pdf'
+          # rescue
+           # p "CONVERTING ERROR"
+           # doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
+          # end
         end
       end
     end
+
+    def make_index
+      if Handler.gen_sphinx_xml
+        %x[sudo pkill searchd]
+        %x[sudo indexer --all]
+        %x[sudo /usr/local/bin/searchd]
+        # set index semaphore
+      else
+        p 'ERROR during generating xml'
+      end
+    end
+
+#    private
 
     def uncompress_document(doc)
       filepath = ""
@@ -80,7 +100,6 @@ class Handler
         # p "UNCOMPRESSION ERROR"
         # doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
       # end
-      p 'end------------'
       p filepath
       filepath
     end
@@ -95,7 +114,10 @@ class Handler
     <sphinx:attr name="category_id" type="int" bits="16" default="0"/>
   </sphinx:schema>) + "\n")
       f.syswrite("\n")
-      docs = Document.where("state = #{State.find_by_name('CONVERTED').code} OR state = #{State.find_by_name('IN_INDEXING').code}")
+      select = "state = #{State.find_by_name('CONVERTED').code}"
+      select += " OR state = #{State.find_by_name('LAST_INDEXED').code}"
+      select += " OR state = #{State.find_by_name('INDEXED').code}"
+      docs = Document.where(select)
       docs.each do |doc|
         pages = doc.pages
         dirname = make_need_filename_extension(doc.filename, '')
@@ -106,55 +128,35 @@ class Handler
           f.syswrite("  <sphinx:document id=" + "\"#{atom_id}\"" + ">" + "\n")
           f.syswrite("  <category_id>#{doc.category_id}</category_id>\n")
           f.syswrite("    <content>" + "\n")
-          f.syswrite(IO.read(CORE_DIR_CONVERTED + dirname + '/' + filename).delete "<" ">" "&")
+          f.syswrite(IO.read(CORE_DIR_TEXTS + dirname + '/' + filename).delete "<" ">" "&")
           f.syswrite("\n")
           f.syswrite("    </content>" + "\n")
           f.syswrite("  </sphinx:document>" + "\n")
           f.syswrite("\n")
         end
-        doc.update_attributes({:state => State.find_by_name('IN_INDEXING').code})
+        if doc.state == State.find_by_name('CONVERTED').code
+          doc.update_attributes({:state => State.find_by_name('LAST_INDEXED').code})
+        elsif doc.state == State.find_by_name('LAST_INDEXED').code
+          doc.update_attributes({:state => State.find_by_name('INDEXED').code})
+        end
       end
       f.syswrite("</sphinx:docset>")
       f.close
-      true
-    rescue
-      false
-    end
 
-    def make_index
-      if Handler.gen_sphinx_xml
-        #%x[sudo indexer --all]
-        #set index semaphore
-      else
-        p 'Error during generating xml'
+      docs = Document.where("state = #{State.find_by_name('REMOVED').code}")
+      docs.each do |doc|
+        doc.update_attributes({:state => State.find_by_name('CONFIRM_REMOVED').code})
+        doc.remove_core_document
       end
+      true
+    # rescue
+      # false
     end
-    
-    def garbage_collector #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-      #if happen failure during processing and we have zombi-state
-      #we should reset state to UPDATED
-    end
-#    def message(userID, partnerID, post_key, text)
-#      hash = {
-#        'senderID' => userID,
-#        'recipientID' => partnerID,
-#        'body' => text,
-#        'postKey' => post_key
-#      }
-#      response = request('message', hash)
-#      ActiveSupport::JSON.decode(response)
-#    end
 
-#    def request(path, data)
-#      params = {}
-#      url = "#{base_url}/social/#{path}"
-#      data.each do |k,v|
-#        v = JSON.generate(v) if v.is_a?(Hash)
-#        v = v.to_s if !v.is_a?(File)
-#        params[k.to_s] = v
-#      end
-#      response = RestClient.post(url, params)
-#    end
+    # def garbage_collector #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+      # #if happen failure during processing and we have zombi-state
+      # #we should reset state to UPDATED
+    # end
   end
 
 end

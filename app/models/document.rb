@@ -15,7 +15,14 @@ class Document < ActiveRecord::Base
 
   def path
     result = ''
-    result = CORE_DIR_FOR_CONVERSION + fullname if !fullname.to_s.empty?
+    result = CORE_DIR_ORIGINALS + fullname if !fullname.to_s.empty?
     result
+  end
+
+  def remove_core_document
+    if !path.empty?
+      FileUtils.rm(path, :force => true)
+      FileUtils.rm_rf(CORE_DIR_TEXTS + filename + '/', secure: true)
+    end
   end
 end

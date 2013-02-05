@@ -36,7 +36,7 @@ class DocumentsController < ApplicationController
   def get
     document = Document.where("id = #{params[:did]}").first if params[:did]
     if document && document.state == State.find_by_name('CONVERTED_ON_CORE').code
-      folder = CORE_DIR_CONVERTED + document.filename #"Users/me/Desktop/stuff_to_zip"
+      folder = CORE_DIR_TEXTS + document.filename #"Users/me/Desktop/stuff_to_zip"
       input_filenames = generate_pages(document)#['image.jpg', 'description.txt', 'stats.csv']
       zipfile_name = CORE_TMP_DIR + document.filename + '.zip' #"/Users/me/Desktop/archive.zip"
       FileUtils.rm zipfile_name, :force=>true
