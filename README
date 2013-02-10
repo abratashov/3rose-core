@@ -1,52 +1,105 @@
-#sudo mkdir /var/log/sphinxsearch/
-#remove it to log/sphinxsearch 
+3rose-core is part of 3rose - Free Rails Open Search Engine.
 
-3rose - Free Rails Open Search Engine
+This part responds for:
+- converting documents (pdf, doc, docx, ...) to text pages
+- service fulltext search (“words” -> [id_doc1, ...]; id_doc1 = 4500001, where 45 - documnt's id, 1 - page)
 
-== Installation ==
-#1
-install all need linux packages:
--RVM (http://beginrescueend.com/)
--Ruby 1.9.3
--Rails 3
--Tomcat 6 (Synaptic Package Manager)
--JODConverter (Synaptic Package Manager)
--Sphinx 0.9.9 (http://sphinxsearch.com/downloads/archive/)
-  "sudo gedit /usr/local/etc/sphinx.conf"
-  copy there content of the "../3rose/config/sphinx/sphinx.conf"
-  set right full path for example: 
-  "xmlpipe_command = cat /home/alex/git/3rose/zuploads/content.xml"
-  "path = /home/alex/git/3rose/sphinx/sphinx"
+###############################################################################
+################################# Installation ################################
+###############################################################################
 
-#2 download project
-mkdir 3rose
-cd 3rose
-git clone git@github.com:abratashov/3rose.git
-cd 3rose
-rake gen_directories
---3rose
-----3rose
-----sphinx
-----uploads
-------origin_books
-------pdf
-------txt_pages
+- rvm (https://rvm.io/)
+- ruby-1.9.3-p194-perf
+- git
+- 3rose-core
+- jodconverter
+- sphinx 0.9.9
 
-#3 start tomcat:
-sudo /etc/init.d/tomcat6 start
+- running
 
-#4 start sphinx:
+###############################################################################
+############################## rvm installation ###############################
+###############################################################################
+\curl -L https://get.rvm.io | bash -s stable --ruby
+
+###############################################################################
+############################# ruby installation ###############################
+###############################################################################
+rvm install ruby-1.9.3-p194-perf
+rvm --default use ruby-1.9.3-p194-perf
+
+###############################################################################
+############################## git installation ###############################
+###############################################################################
+sudo apt-get install git-core git-gui git-doc
+
+###############################################################################
+########################## 3rose-core installation ############################
+###############################################################################
+mkdir ~/Installs/3rose
+cd ~/Installs/3rose
+git clone git@github.com:phlowerteam/3rose-core.git
+cd ~/Installs/3rose/3rose-core
+
+# set params in setup area of application.rb:
+nano ~/Installs/3rose/3rose-core/config/application.rb
+
+# set params in database.yml for access to db (same as on the 3rose-app side):
+nano ~/Installs/3rose/3rose-core/config/database.yml
+
+# install all need gems
+bundle install
+
+bundle exec rake gen_core_directories
+# it creates file structes:
+#[FOLDER]
+#--originals
+#--sphinx
+#--texts
+#--tmp_core
+# where [FOLDER] is 'core_documents' ( or 'app_documents' in case sharing mode with app)
+
+###############################################################################
+######################### jodconverter installation ###########################
+###############################################################################
+sudo apt-get install jodconverter
+# it will suggest install other packages (maybe java or tomcat)
+
+###############################################################################
+############################# Sphinx installation #############################
+###############################################################################
+# load sphinx 0.9.9
+# http://sphinxsearch.com/downloads/archive/
+# http://sphinxsearch.com/docs/current.html#installing
+
+# configure after installation:
+sudo mkdir /var/log/sphinxsearch/
+sudo gedit /usr/local/etc/sphinx.conf
+# copy there content of the "../3rose/config/sphinx/sphinx.conf"
+# set right full path for folder 'core_documents'( or 'app_documents' in case sharing mode with app): 
+  "xmlpipe_command = cat /home/alex/Projects/3rose/[FOLDER]/content.xml"
+  "path = /home/alex/Projects/3rose/[FOLDER]/sphinx/sphinx"
+
+# main sphinx command:
+sudo kill -9 'pgrep searchd' # stop searchd service
+sudo indexer --all           # make indexation
+sudo /usr/local/bin/searchd  # start searchd service
+search word                  # test searching
+
+###############################################################################
+################################### Running ###################################
+###############################################################################
+# run server
+cd ~/Projects/3rose/3rose-core
+rails s --port=3003
+
+# run worker
+cd ~/Projects/3rose/3rose-core
+bundle exec rake core_worker
+
+# manual updating sphinx index (you should run it every time when you want to update)
+cd ~/Projects/3rose/3rose-core
+bundle exec rake make_index
+
+# run sphinx service (index should be presented already)
 sudo /usr/local/bin/searchd
-
-#5 rails s
-
-#6 indexed all added books
-rake gen_sphinx_xml          #generate content xml
-sudo kill -9 'pgrep searchd' #stop searchd service
-sudo indexer --all           #make indexation
-
-Sphinx Server (HTTPS-API)
-конвертация поступивших документов (pdf, doc, ...) в текст (постраничный)
-индексация текстовых файлов (cron)
-сервис полнотекстового поиска (“слово” -> [id_doc1, ...]; id_doc1 = 4500001, где 45 - документ, 1 - страница)
-

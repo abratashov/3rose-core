@@ -61,24 +61,32 @@ end
 
 Encoding.default_internal = Encoding.default_external = 'utf-8'
 
-APP_CORE_PASSWORD = 'secret password'
-APP_CORE_TOKEN    = Digest::MD5.hexdigest(APP_CORE_PASSWORD)
-
-#need take away to DB
 DOC_TYPES = ['txt', 'pdf', 'doc', 'docx']
 
 MAX_DOCUMENTS = 100000
-MINUTE = 1 #60
+MINUTE = 10 #60
 
 CORE_DIR_ROOT      = '/' + Rails.root.to_s.split('/')[1..-2].join('/') + '/'
 
-#app and core in the same machine
-IS_SHARE_FOLDER    = false
+#########################################################################
+################################# SETUP CORE ############################ 
+#########################################################################
+
+# If 3rose-app and 3rose-core in the same machine
+IS_APP_SHARE_FOLDER = false
+
 #CORE_DIR_DOCUMENTS = CORE_DIR_ROOT + 'app_documents/'
 CORE_DIR_DOCUMENTS = CORE_DIR_ROOT + 'core_documents/'
+
+APP_CORE_PASSWORD = 'secret password'
+APP_CORE_TOKEN    = Digest::MD5.hexdigest(APP_CORE_PASSWORD)
+
+#########################################################################
+#########################################################################
 
 CORE_DIR_ORIGINALS = CORE_DIR_DOCUMENTS + 'originals/'
 CORE_DIR_TEXTS     = CORE_DIR_DOCUMENTS + 'texts/'
 CORE_TMP_DIR       = CORE_DIR_DOCUMENTS + 'tmp_core/'
 CORE_SPHINX_DIR    = CORE_DIR_DOCUMENTS + 'sphinx/'
 CORE_XML_PATH      = CORE_DIR_DOCUMENTS + 'content.xml'
+

@@ -17,6 +17,10 @@ task :core_worker do
   while(true)
     p Time.now
     Handler.convert_to_text
+
+    #remove unused files for removed documents
+    Handler.garbage_collector
+
     sleep 10*MINUTE
   end
 end

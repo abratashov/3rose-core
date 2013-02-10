@@ -12,7 +12,7 @@ class DocumentsController < ApplicationController
   def load
     status = false
     document = Document.find(params[:did].to_i) if params[:did]
-    if document && params[:f]
+    if document && params[:f] && !IS_APP_SHARE_FOLDER
       FileUtils.rm(document.path, :force => true) if !document.filename.empty?
       #Remove all text page (did)!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       document_uploader = DocumentUploader.new
@@ -35,7 +35,7 @@ class DocumentsController < ApplicationController
 
   def get
     document = Document.where("id = #{params[:did]}").first if params[:did]
-    if document && document.state == State.find_by_name('CONVERTED_ON_CORE').code
+    if document && document.state == State.find_by_name('CONVERTED_ON_CORE').code && !IS_APP_SHARE_FOLDER
       folder = CORE_DIR_TEXTS + document.filename #"Users/me/Desktop/stuff_to_zip"
       input_filenames = generate_pages(document)#['image.jpg', 'description.txt', 'stats.csv']
       zipfile_name = CORE_TMP_DIR + document.filename + '.zip' #"/Users/me/Desktop/archive.zip"

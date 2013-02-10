@@ -153,10 +153,53 @@ class Handler
       # false
     end
 
-    # def garbage_collector #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-      # #if happen failure during processing and we have zombi-state
-      # #we should reset state to UPDATED
-    # end
+    def garbage_collector
+      if !IS_APP_SHARE_FOLDER
+        err1 = State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code
+        err2 = State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code
+        err3 = State.find_by_name('ERR_UNKNOWN_DOCUMENT_TYPE').code
+        ind1 = State.find_by_name('LAST_INDEXED').code
+        ind2 = State.find_by_name('INDEXED').code
+        documents = Document.where('state = ? OR state = ? OR state = ? OR state = ? OR state = ?', err1, err2, err3, ind1, ind2)
+        documents.each{|doc| FileUtils.rm(doc.path, :force => true)}
+      end
+
+      documents = Document.find(:all)
+      document_codes = []
+      documents = documents ? documents : []
+      documents.each{|doc| document_codes << doc.filename.split(/[_]/)[-1]}
+      # example: "ep_blavatsky____voice_of_the_silence_79570".split(/[\._]/)[-1] => "79570"
+      files = Dir.entries(CORE_DIR_ORIGINALS)
+      files.delete('.')
+      files.delete('..')
+      files.each do |file|
+        if !document_codes.include?(file.split(/[\._]/)[-2])
+          FileUtils.rm(CORE_DIR_ORIGINALS + file, :force => true)
+        end
+      end
+
+      folders = Dir.entries(CORE_DIR_TEXTS)
+      folders.delete('.')
+      folders.delete('..')
+      folders.each do |folder|
+        if !document_codes.include?(folder.split(/[_]/)[-1])
+          FileUtils.rm_rf(CORE_DIR_TEXTS + folder + '/', :secure => true)
+        end
+      end
+
+      documents = Document.where('state = ?', State.find_by_name('CONVERTED_ON_CORE').code)
+      document_codes = []
+      documents = documents ? documents : []
+      documents.each{|doc| document_codes << doc.filename.split(/[_]/)[-1]}
+      files = Dir.entries(CORE_TMP_DIR)
+      files.delete('.')
+      files.delete('..')
+      files.each do |file|
+        if !document_codes.include?(file.split(/[\._]/)[-2])
+          FileUtils.rm(CORE_TMP_DIR + file, :force => true)
+        end
+      end
+    end
   end
 
 end
