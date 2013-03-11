@@ -3,9 +3,7 @@ class Document < ActiveRecord::Base
 
   belongs_to :category
   belongs_to :user
-  validates :author, :presence => true
   validates :name, :presence => true
-  validates_uniqueness_of :author, :scope => :name
 
   def fullname
     result = ''
@@ -20,9 +18,14 @@ class Document < ActiveRecord::Base
   end
 
   def remove_core_document
-    if !path.empty?
-      FileUtils.rm(path, :force => true)
-      FileUtils.rm_rf(CORE_DIR_TEXTS + filename + '/', secure: true)
-    end
+      if !path.empty?
+        begin
+          FileUtils.rm(path, :force => true)
+          FileUtils.rm_rf(CORE_DIR_TEXTS + filename + '/', secure: true)
+        rescue Exception => e
+          p "Error: Document.remove_core_document #{path}"
+          false
+        end
+      end
   end
 end

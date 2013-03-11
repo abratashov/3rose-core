@@ -8,7 +8,11 @@ class Handler
   class << self
     def convert_to_text
       docs = Document.where("state = #{State.find_by_name('ACCEPT_FOR_CONVERT').code}")
+      error_counter = 0
       docs.each do |doc|
+        p ''
+        p "==================== #{doc.name} ===================="
+        p Time.now
         if doc.filetype == 'zip'
           document_name = uncompress_document(doc)
           document_path = CORE_TMP_DIR + document_name
@@ -17,51 +21,72 @@ class Handler
           document_path = doc.path
         else
           doc.update_attributes({:state => State.find_by_name('ERR_UNKNOWN_DOCUMENT_TYPE').code})
-          document_path = ''
         end
 
-        unless document_path.empty?
+        if document_name && !document_name.empty?
           p document_path
           doctype = document_path.sub(/^.*\./,'')
-          doc.update_attributes({:doctype => doctype}) if doctype
-          #begin
-            if doc.filetype != 'pdf'
-              Docsplit.extract_pdf(document_path, :output => CORE_TMP_DIR)
-              pdf_path = CORE_TMP_DIR + make_need_filename_extension(document_name, 'pdf')
-            else
-              pdf_path = doc.path
-            end
-            num_pages = 0
-            num_pages = PdfUtils.info(pdf_path).pages
-            if num_pages
-              #dirname = make_need_filename_extension(doc.filename, '')
-              dirname = doc.filename
-              FileUtils.rm_rf(CORE_DIR_TEXTS + dirname)
-              Dir.mkdir(CORE_DIR_TEXTS + dirname) if !(Dir.exist?(CORE_DIR_TEXTS + dirname))
-              Docsplit::extract_text(pdf_path, :ocr => false, :pages => 'all', :output => CORE_DIR_TEXTS + dirname)
-              delete_last_byte_at_document(doc.filename, num_pages)
-              doc.update_attributes({:pages => num_pages})
-              doc.update_attributes({:state => State.find_by_name('CONVERTED_ON_CORE').code})
-            else
+          doc.update_attributes({:doctype => doctype}) if doctype && document_path != CORE_TMP_DIR
+          last_error = false
+          if DOC_TYPES.include?(doctype)
+            begin
+              p doc.filetype
+              if doc.filetype != 'pdf'
+                if doc.doctype != 'pdf'
+                  Docsplit.extract_pdf(document_path, :output => CORE_TMP_DIR)
+                end
+                pdf_path = CORE_TMP_DIR + make_need_filename_extension(document_name, 'pdf')
+              else
+                pdf_path = doc.path
+              end
+              p "PDF path: #{pdf_path}"
+              num_pages = 0
+              num_pages = PdfUtils.info(pdf_path).pages
+              p "Pages: #{num_pages}"
+              if num_pages
+                #dirname = make_need_filename_extension(doc.filename, '')
+                dirname = doc.filename
+                FileUtils.rm_rf(CORE_DIR_TEXTS + dirname)
+                Dir.mkdir(CORE_DIR_TEXTS + dirname) if !(Dir.exist?(CORE_DIR_TEXTS + dirname))
+                Docsplit::extract_text(pdf_path, :ocr => false, :pages => 'all', :output => CORE_DIR_TEXTS + dirname)
+                delete_last_byte_at_document(doc.filename, num_pages)
+                doc.update_attributes({:pages => num_pages})
+                doc.update_attributes({:state => State.find_by_name('CONVERTED_ON_CORE').code})
+              else
+                doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
+              end
+              FileUtils.rm(pdf_path, :force => true) if num_pages && doc.filetype != 'pdf'
+            rescue
+              last_error = true
+              error_counter += 1
+              p "CONVERTING ERROR (#{error_counter})"
               doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
             end
-            FileUtils.rm(pdf_path, :force => true) if num_pages && doc.filetype != 'pdf'
-          # rescue
-           # p "CONVERTING ERROR"
-           # doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
-          # end
+            if last_error
+              if error_counter > 3
+                #%x[xkbevd -bg]
+                raise 'Many errors have occured. Need to restart converting.'
+              end
+            else
+              error_counter = 0
+            end
+          else
+            doc.update_attributes({:state => State.find_by_name('ERR_UNKNOWN_DOCUMENT_TYPE').code})
+          end
         end
       end
     end
 
     def make_index
+      p "#{Time.now} Making index..."
       if Handler.gen_sphinx_xml
         %x[sudo pkill searchd]
         %x[sudo indexer --all]
         %x[sudo /usr/local/bin/searchd]
+        p "#{Time.now} Index had been made"
         # set index semaphore
       else
-        p 'ERROR during generating xml'
+        p "#{Time.now} ERROR during generating xml"
       end
     end
 
@@ -69,7 +94,7 @@ class Handler
 
     def uncompress_document(doc)
       filepath = ""
-      # begin
+      begin
         source = doc.path
         target = CORE_TMP_DIR
         FileUtils.rm_rf(target, secure: true) # delete tmp/
@@ -89,6 +114,7 @@ class Handler
             rescue
               FileUtils.rm("#{target}#{entry}")
               puts "Error #{$!}#{entry}"
+              doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
             end
           end
         end
@@ -96,11 +122,10 @@ class Handler
           doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
           filepath = ""
         end
-      # rescue
-        # p "UNCOMPRESSION ERROR"
-        # doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
-      # end
-      p filepath
+      rescue
+        p "UNCOMPRESSION ERROR"
+        doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
+      end
       filepath
     end
 
@@ -148,6 +173,9 @@ class Handler
         doc.update_attributes({:state => State.find_by_name('CONFIRM_REMOVED').code})
         doc.remove_core_document
       end
+      p "#{Time.now} XML had been generated"
+      cats = Category.where("state = #{State.find_by_name('REMOVED').code}")
+      cats.each{|cat| cat.update_attributes({:state => State.find_by_name('CONFIRM_REMOVED').code})}
       true
     # rescue
       # false

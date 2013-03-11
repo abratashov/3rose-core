@@ -14,13 +14,19 @@ end
 desc "start core worker"
 task :core_worker do
   p "Core worker started =>"
+  is_error_show = false
   while(true)
-    p Time.now
     Handler.convert_to_text
 
     #remove unused files for removed documents
-    Handler.garbage_collector
-
+    begin
+      Handler.garbage_collector
+    rescue
+      if !is_error_show
+        p "Last convertion fininshed emergency. You need manually remove incorrect folder in the #{CORE_TMP_DIR}"
+        is_error_show = true
+      end
+    end
     sleep 10*MINUTE
   end
 end
