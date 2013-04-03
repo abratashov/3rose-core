@@ -2,19 +2,21 @@
 require 'tools'
 require 'zip/zip'
 require 'zlib'
+require 'logger'
 
 class Handler
 
   class << self
+    logger = Logger.new(File.open('log.log', 'a'))
     def convert_to_text
       docs = Document.where("state = #{State.find_by_name('ACCEPT_FOR_CONVERT').code}")
       error_counter = 0
       docs.each do |doc|
-        p ''
-        p "==================== #{doc.name} ===================="
-        p Time.now
+        logger.info ''
+        logger.info "==================== #{doc.name} ===================="
+        logger.info Time.now
         if doc.filetype == 'zip'
-          document_name = uncompress_document(doc)
+          document_name = uncompress_document(doc, logger)
           document_path = CORE_TMP_DIR + document_name
         elsif DOC_TYPES.include?(doc.filetype)
           document_name = doc.fullname
@@ -24,13 +26,13 @@ class Handler
         end
 
         if document_name && !document_name.empty?
-          p document_path
+          logger.info document_path
           doctype = document_path.sub(/^.*\./,'')
           doc.update_attributes({:doctype => doctype}) if doctype && document_path != CORE_TMP_DIR
           last_error = false
           if DOC_TYPES.include?(doctype)
             begin
-              p doc.filetype
+              logger.info doc.filetype
               if doc.filetype != 'pdf'
                 if doc.doctype != 'pdf'
                   Docsplit.extract_pdf(document_path, :output => CORE_TMP_DIR)
@@ -39,10 +41,10 @@ class Handler
               else
                 pdf_path = doc.path
               end
-              p "PDF path: #{pdf_path}"
+              logger.info "PDF path: #{pdf_path}"
               num_pages = 0
               num_pages = PdfUtils.info(pdf_path).pages
-              p "Pages: #{num_pages}"
+              logger.info "Pages: #{num_pages}"
               if num_pages
                 #dirname = make_need_filename_extension(doc.filename, '')
                 dirname = doc.filename
@@ -59,18 +61,21 @@ class Handler
             rescue
               last_error = true
               error_counter += 1
-              p "CONVERTING ERROR (#{error_counter})"
+              logger.error "CONVERTING ERROR (#{error_counter})"
               doc.update_attributes({:state => State.find_by_name('ERR_CANNOT_CONVERT_DOCUMENT').code})
             end
             if last_error
               if error_counter > 3
                 #%x[xkbevd -bg]
-                raise 'Many errors have occured. Need to restart converting.'
+                msg = 'Many errors have occured. Need to restart converting.'
+                logger.error msg
+                raise msg
               end
             else
               error_counter = 0
             end
           else
+            logger.error 'ERR_UNKNOWN_DOCUMENT_TYPE'
             doc.update_attributes({:state => State.find_by_name('ERR_UNKNOWN_DOCUMENT_TYPE').code})
           end
         end
@@ -92,7 +97,7 @@ class Handler
 
 #    private
 
-    def uncompress_document(doc)
+    def uncompress_document(doc, logger)
       filepath = ""
       begin
         source = doc.path
@@ -113,7 +118,7 @@ class Handler
               files << File.read("#{target}#{filepath}")
             rescue
               FileUtils.rm("#{target}#{entry}")
-              puts "Error #{$!}#{entry}"
+              logger.error "Error #{$!}#{entry}"
               doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
             end
           end
@@ -123,7 +128,7 @@ class Handler
           filepath = ""
         end
       rescue
-        p "UNCOMPRESSION ERROR"
+        logger.error "UNCOMPRESSION ERROR"
         doc.update_attributes({:state => State.find_by_name('ERR_UNCOMPRESS_DOCUMENT').code})
       end
       filepath

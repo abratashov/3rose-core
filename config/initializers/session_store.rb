@@ -5,4 +5,4 @@ RoseCore::Application.config.session_store :cookie_store, key: '_rose_core_sessi
 # Use the database for sessions instead of the cookie-based default,
 # which shouldn't be used to store highly confidential information
 # (create the session table with "rails generate session_migration")
-# RoseCore::Application.config.session_store :active_record_store
+ RoseCore::Application.config.session_store :active_record_store

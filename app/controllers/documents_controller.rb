@@ -23,14 +23,14 @@ class DocumentsController < ApplicationController
   end
 
   def remove
-    document = Document.find(params[:did].to_i) if params[:did]
+    # document = Document.find(params[:did].to_i) if params[:did]
   end
 
   def status
-    result = {:status => 0}
-    doc = Document.where("id = #{params[:did]}").first if params[:did]
-    result[:status] = doc.status if doc
-    render :json => result
+    # result = {:status => 0}
+    # doc = Document.where("id = #{params[:did]}").first if params[:did]
+    # result[:status] = doc.status if doc
+    # render :json => result
   end
 
   def get
@@ -55,21 +55,21 @@ class DocumentsController < ApplicationController
   end
 
   def generate_pages(doc)
-    res = []
-    doc.pages.times {|num| res << doc.filename + "_#{num + 1}.txt"}
-    res
+    # res = []
+    # doc.pages.times {|num| res << doc.filename + "_#{num + 1}.txt"}
+    # res
   end
 
   def compress(path)
-    path.sub!(%r[/$],'')
-    archive = File.join(path, File.basename(path))+'.zip'
-    FileUtils.rm archive, :force=>true
-  
-    Zip::ZipFile.open(archive, 'w') do |zipfile|
-      Dir["#{path}/**/**"].reject{|f|f==archive}.each do |file|
-        zipfile.add(file.sub(path+'/',''),file)
-      end
-    end
+    # path.sub!(%r[/$],'')
+    # archive = File.join(path, File.basename(path))+'.zip'
+    # FileUtils.rm archive, :force=>true
+#   
+    # Zip::ZipFile.open(archive, 'w') do |zipfile|
+      # Dir["#{path}/**/**"].reject{|f|f==archive}.each do |file|
+        # zipfile.add(file.sub(path+'/',''),file)
+      # end
+    # end
   end
 #no! only crontask
 #  def convert
@@ -87,45 +87,48 @@ class DocumentsController < ApplicationController
 #    result[:status] = doc.status if doc
 #    render :json => result
   end
-  
+
   def search
     p params[:search]
     p params[:categories]
-     result = []
-     search_string = params[:search]
-     categories = params[:categories] ? params[:categories] : []
-     if search_string
-       docs_pages = {}
-       sphinx = Riddle::Client.new
+    result = []
+    search_string = params[:search]
+    categories = params[:categories] ? params[:categories] : []
+    if search_string
+      docs_pages = {}
+      sphinx = Riddle::Client.new
 
-       sphinx.sort_mode  = :extended
-       sphinx.sort_by    = "category_id DESC"
-       sphinx.match_mode = :extended
-       #sphinx.match_mode = :all
+      if params[:sort_by] && params[:sort_by] == 'category'
+        p '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! if params[:sort_by] && params[:sort_by] == category' 
+        sphinx.sort_mode  = :extended
+        sphinx.sort_by    = "category_id DESC"
+      end
+      sphinx.match_mode = :extended
+      #sphinx.match_mode = :all
 
-       sphinx.limit = params[:limit] ? params[:limit] : 50
-       sphinx.offset = params[:offset] ? params[:offset] : 0
+      sphinx.limit = params[:limit] ? params[:limit] : 50
+      sphinx.offset = params[:offset] ? params[:offset] : 0
 
-       unless categories.empty?
-         p 'here----------------------------'
-         p categories
-         sphinx.filters << Riddle::Client::Filter.new("category_id", categories, false)
-       end
-       sphinx_results = sphinx.query(search_string)
-       p 'ppppppppppppppppppppppp'
-       p sphinx_results
-       sphinx_results[:matches].each do |match|
-         id = (match[:doc]/MAX_DOCUMENTS).to_i
-         if !(docs_pages[id])
-           docs_pages[id] = []
-         end
-         docs_pages[id] << (match[:doc] - ((match[:doc]/10000).to_i)*10000)
-       end
-       docs_pages.each do |key, value|
-         result << { :document_id => key, :pages=> value}
-       end
-     end
-     render :json => result.to_json
-   end
-
+      unless categories.empty?
+        p 'here----------------------------'
+        p categories
+        sphinx.filters << Riddle::Client::Filter.new("category_id", categories, false)
+      end
+      sphinx_results = sphinx.query(search_string)
+      p 'ppppppppppppppppppppppp'
+      p sphinx_results
+      sphinx_results[:matches].each do |match|
+        id = (match[:doc]/MAX_DOCUMENTS).to_i
+        if !(docs_pages[id])
+          docs_pages[id] = []
+        end
+        docs_pages[id] << {
+          :page => (match[:doc] - ((match[:doc]/10000).to_i)*10000),
+          :weight => match[:weight]
+        }
+      end
+      docs_pages.each{|key, value| result << { :document_id => key, :pages=> value} }
+    end
+    render :json => result.to_json
+  end
 end

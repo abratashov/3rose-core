@@ -7,6 +7,8 @@ This part responds for:
 ###############################################################################
 ################################# Installation ################################
 ###############################################################################
+sudo apt-get install build-essential openssl libreadline6 libreadline6-dev curl git-core zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt-dev autoconf libc6-dev ncurses-dev automake libtool bison
+sudo apt-get install libmysql-ruby libmysqlclient-dev
 
 - rvm (https://rvm.io/)
 - ruby-1.9.3-p194-perf
@@ -68,9 +70,18 @@ sudo apt-get install jodconverter
 ###############################################################################
 ############################# Sphinx installation #############################
 ###############################################################################
+sudo apt-get install libexpat1 libexpat1-dev
+
 # load sphinx 0.9.9
 # http://sphinxsearch.com/downloads/archive/
 # http://sphinxsearch.com/docs/current.html#installing
+
+cd ~/Installs
+wget http://sphinxsearch.com/files/sphinx-0.9.9.tar.gz
+tar -xvf sphinx-0.9.9.tar.gz
+./configure
+sudo make
+sudo make install
 
 # configure after installation:
 sudo mkdir /var/log/sphinxsearch/
@@ -98,6 +109,7 @@ cd ~/Projects/3rose/3rose-core
 bundle exec rake core_worker
 
 # manual updating sphinx index (you should run it every time when you want to update)
+# generate 'content.xml', make index and re-run sphinx
 cd ~/Projects/3rose/3rose-core
 bundle exec rake make_index
 
