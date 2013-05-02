@@ -63,7 +63,7 @@ Encoding.default_internal = Encoding.default_external = 'utf-8'
 
 DOC_TYPES = ['txt', 'pdf', 'doc', 'docx', 'htm', 'html']
 
-MAX_DOCUMENTS = 100000
+MAX_PAGES = 10000
 MINUTE = 1 #60
 
 CORE_DIR_ROOT      = '/' + Rails.root.to_s.split('/')[1..-2].join('/') + '/'

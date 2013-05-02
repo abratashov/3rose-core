@@ -7,9 +7,10 @@ require 'logger'
 class Handler
 
   class << self
-    logger = Logger.new(File.open('log.log', 'a'))
     def convert_to_text
+      logger = Logger.new(File.open('log.log', 'a'))
       docs = Document.where("state = #{State.find_by_name('ACCEPT_FOR_CONVERT').code}")
+      p docs.length
       error_counter = 0
       docs.each do |doc|
         logger.info ''
@@ -153,12 +154,12 @@ class Handler
         dirname = make_need_filename_extension(doc.filename, '')
         pages.times do |page|
           filename = make_filename_of_txt_page(doc.filename, page + 1)
-          atom_id = doc.id*MAX_DOCUMENTS + (page + 1)
+          atom_id = doc.id*MAX_PAGES + (page + 1)
           #Example: '45000'+'105' => 45000105, [id + page] atomic el for indexation
           f.syswrite("  <sphinx:document id=" + "\"#{atom_id}\"" + ">" + "\n")
           f.syswrite("  <category_id>#{doc.category_id}</category_id>\n")
           f.syswrite("    <content>" + "\n")
-          f.syswrite(IO.read(CORE_DIR_TEXTS + dirname + '/' + filename).delete "<" ">" "&")
+          f.syswrite(IO.read(CORE_DIR_TEXTS + dirname + '/' + filename).delete "<" ">" "&" "\u0001" "\u25A0" "\a")
           f.syswrite("\n")
           f.syswrite("    </content>" + "\n")
           f.syswrite("  </sphinx:document>" + "\n")

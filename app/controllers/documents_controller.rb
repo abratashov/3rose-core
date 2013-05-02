@@ -55,9 +55,9 @@ class DocumentsController < ApplicationController
   end
 
   def generate_pages(doc)
-    # res = []
-    # doc.pages.times {|num| res << doc.filename + "_#{num + 1}.txt"}
-    # res
+    res = []
+    doc.pages.times {|num| res << doc.filename + "_#{num + 1}.txt"}
+    res
   end
 
   def compress(path)
@@ -118,12 +118,12 @@ class DocumentsController < ApplicationController
       p 'ppppppppppppppppppppppp'
       p sphinx_results
       sphinx_results[:matches].each do |match|
-        id = (match[:doc]/MAX_DOCUMENTS).to_i
+        id = (match[:doc]/MAX_PAGES).to_i
         if !(docs_pages[id])
           docs_pages[id] = []
         end
         docs_pages[id] << {
-          :page => (match[:doc] - ((match[:doc]/10000).to_i)*10000),
+          :page => (match[:doc] - ((match[:doc]/MAX_PAGES).to_i)*MAX_PAGES),
           :weight => match[:weight]
         }
       end
