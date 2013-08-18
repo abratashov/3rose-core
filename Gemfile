@@ -25,7 +25,7 @@ gem 'prawn', '~>0.7.1'     #need for pdf_utils
 gem 'pdf-reader'           #need for pdf_utils
 gem 'foreman', '~> 0.41.0' #need for manage starting application
 gem 'rubyzip'              #zipping/unzipping
-gem 'riddle', '~> 1.5.0'   #API for sphinx (full indexation of content)
+gem 'riddle', '~> 1.5.7'   #API for sphinx (full indexation of content)
 # To use ActiveModel has_secure_password
 # gem 'bcrypt-ruby', '~> 3.0.0'
 

@@ -143,8 +143,8 @@ class Handler
   <sphinx:schema>
     <sphinx:field name="content"/>
     <sphinx:attr name="category_id" type="int" bits="16" default="0"/>
-  </sphinx:schema>) + "\n")
-      f.syswrite("\n")
+  </sphinx:schema>
+))
       select = "state = #{State.find_by_name('CONVERTED').code}"
       select += " OR state = #{State.find_by_name('LAST_INDEXED').code}"
       select += " OR state = #{State.find_by_name('INDEXED').code}"

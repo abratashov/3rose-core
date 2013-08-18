@@ -103,7 +103,9 @@ class DocumentsController < ApplicationController
         sphinx.sort_mode  = :extended
         sphinx.sort_by    = "category_id DESC"
       end
-      sphinx.match_mode = :extended
+
+      sphinx.match_mode = params[:search_mode]
+      #sphinx.match_mode = :extended
       #sphinx.match_mode = :all
 
       sphinx.limit = params[:limit] ? params[:limit] : 50
